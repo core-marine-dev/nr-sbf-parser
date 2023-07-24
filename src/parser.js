@@ -1,91 +1,68 @@
-const { SBFParser: Parser } = require('sbf-parser')
+const { SBFParser: Parser } = require('@coremarine/sbf-parser')
+
+const isString = value => (typeof value === 'string' || value instanceof String)
+const isBoolean = value => (typeof value === "boolean")
 
 module.exports = function(RED) {
-
-  const isString = value => typeof value === 'string' || value instanceof String
-  const isBoolean = value => typeof value == "boolean"
-
   // Component
   function SBFParser(config) {
     RED.nodes.createNode(this, config)
     const node = this
-
-    const { name, firmware, memory } = config
-    node.name = name
-    node.firmware = firmware
-    node.memory = memory
-    
+    // Logic
+    let parser = null
     try {
-      node.parser = new Parser(firmware, memory)
-      node.status = ({
-        fill: "green",
-        shape: "dot",
-        text: node.firmware
-      })
+      const { name, firmware, memory } = config
+      Object.assign(node, { name, firmware, memory })
+      parser = new Parser(firmware, memory)
     } catch (err) {
-      node.status = ({
-        fill: "red",
-        shape: "dot",
-        text: "disable"
-      })
+      node.error(err, 'problem setting up SBF parser')
     }
-
-    const addData = data => node.parser.addData(data)
-
-    const getData = () => node.parser.getFrames()
-
-    const setMemory = memory => { node.parser.memory = memory }
-
+    // Inpput
     node.on('input', (msg, send, done) => {
       let error = null
       const { command, payload } = msg
       switch(command) {
         // DATA --------------------------------------
         case 'addData':
-          if (Buffer.isBuffer(payload)) {
-            addData(payload)
-          }
+          if (Buffer.isBuffer(payload)) { parser.addData(payload) }
           send(null)
           break
         case 'getData':
-          msg.payload = getData()
+          msg.payload = parser.getFrames()
+          msg.firmware = node.firmware
           send(msg)
           break
         // FIRMWARE ---------------------------------
         case 'setFirmware':
           if (isString(payload)) {
-            const previousFirmware = node.parser.firmware
+            const previousFirmware = parser.firmware
             try {
-              node.parser.firmware = payload
+              parser.firmware = payload
             } catch (err) {
               error = err
-              node.parser.firmware = previousFirmware
+              parser.firmware = previousFirmware
             }
           }
           send(null)
           break
         case 'getFirmware':
-          msg.payload = node.parser.firmware
+          msg.payload = parser.firmware
           send(msg)
           break
         // MEMORY ------------------------------------
         case 'setMemory':
-          if (isBoolean(payload)) {
-            node.parser.memory = payload
-          }
+          if (isBoolean(payload)) { parser.memory = memory }
           send(null)
           break
         case 'getMemory':
-          msg.payload = node.parser.memory
+          msg.payload = parser.memory
           send(msg)
           break
       }
       // Finish
-      if (done) { 
-        (error === null ) ? done(error) : done()
-      }
+      if (done) { (error === null ) ? done() : done(error) }
     })
   }
   // Register
-  RED.nodes.registerType('sbf-parser', SBFParser)
+  RED.nodes.registerType('septentrio-parser', SBFParser)
 }
