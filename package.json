@@ -1,6 +1,6 @@
 {
   "name": "@coremarine/nr-sbf-parser",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "author": "CoreMarine",
   "license": "MIT",
   "description": "A group of Node-Red components to work with Septentrio SBF protocol",
@@ -21,6 +21,9 @@
     "binary",
     "protocol"
   ],
+  "engines": {
+    "node": ">=18.0.0"
+  },
   "node-red": {
     "version": ">=2.0.0",
     "nodes": {
