@@ -1,4 +1,4 @@
-# @coremarine/nr-septentrio-parser
+# @coremarine/nr-sbf-parser
 
 SBF parser component for Septentrio binary protocol.
 
